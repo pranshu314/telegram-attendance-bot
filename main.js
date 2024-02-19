@@ -1,3 +1,12 @@
+// Script Properties
+// CHAT_STATUS :=  initial
+// SPREADSHEET_ID := <Google Sheet ID>
+// TELEGRAM_TOKEN := <Telegram Bot Token>
+// WEBHOOK_URL := <This scripts deployed url>
+// USR_NAME := <Your Telegram Username>
+// LATEST_SEM := <Current Semester you want to mark attendance for>
+
+// Function to register webhook progmatically on each deployment
 function registerWebhook() {
   const scriptProps = PropertiesService.getScriptProperties();
   const key = scriptProps.getProperty("TELEGRAM_TOKEN");
@@ -45,6 +54,7 @@ function doPost(e) {
 
   usrName = propertiesService.getProperty("USR_NAME");
 
+  // To restrict the bot so that only one person can use it.
   if (userData.username != usrName) {
     sendMessage(
       'Please go to the github repo ( "https://github.com/pranshu314/telegram-attendance-bot.git" ) and follow the steps to use it on your own.',
@@ -53,6 +63,7 @@ function doPost(e) {
     return;
   }
 
+  // Check to see if the message is empty
   if (!message || message.toString().trim().length == 0) {
     sendMessage("Use only commands given", chatId);
     return;
