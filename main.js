@@ -38,20 +38,26 @@ function doPost(e) {
   const userData = data.message.from;
   Logger.log(userData);
 
-  //if(userData.id != '123'){
-  // sendMessage('Please go to the github repo ( "https://github.com/pranshu314/telegram-attendance-bot.git" ) and follow the steps to use it on your own.', chatId)
-  // return
-  //}
+  const propertiesService = PropertiesService.getScriptProperties();
+  let chatDialogStatus = propertiesService.getProperty("CHAT_STATUS");
+  let TELEGRAM_TOKEN = propertiesService.getProperty("TELEGRAM_TOKEN");
+  let WEBHOOK_URL = propertiesService.getProperty("WEBHOOK_URL");
+
+  usrName = propertiesService.getProperty("USR_NAME");
+
+  if (userData.username != usrName) {
+    sendMessage(
+      'Please go to the github repo ( "https://github.com/pranshu314/telegram-attendance-bot.git" ) and follow the steps to use it on your own.',
+      chatId,
+    );
+    return;
+  }
 
   if (!message || message.toString().trim().length == 0) {
     sendMessage("Use only commands given", chatId);
     return;
   }
 
-  const propertiesService = PropertiesService.getScriptProperties();
-  let chatDialogStatus = propertiesService.getProperty(chatId);
-  let TELEGRAM_TOKEN = propertiesService.getProperty("TELEGRAM_TOKEN");
-  let WEBHOOK_URL = propertiesService.getProperty("WEBHOOK_URL");
   let msg = "";
   const COMMANDS =
     "\n/new_sem :- Start of a new semester\n/add_subject :- Add a new course subject\n/mark :- Mark the Attendance\n/percentage :- Get Attendance Percentage\n/can_skip :- Get the number of lectures you can skip according to current attendance\n/help :- Get the list of commands";
@@ -71,7 +77,7 @@ function doPost(e) {
     } else if (message == "/can_skip") {
       getCanSkip(chatId);
     } else {
-      sendMessage("Use only the commands given", chatId);
+      sendMessage("Use only the commands given ", chatId);
       return;
     }
   } catch (e) {
@@ -80,7 +86,7 @@ function doPost(e) {
   }
 }
 
-function sendMessage(text, chat_id) {
+function sendMessage(text, chat_id, reply_markup) {
   const scriptProps = PropertiesService.getScriptProperties();
   const key = scriptProps.getProperty("TELEGRAM_TOKEN");
   const url = `https://api.telegram.org/bot${key}/sendMessage`;
@@ -93,6 +99,7 @@ function sendMessage(text, chat_id) {
     payload: JSON.stringify({
       text,
       chat_id,
+      reply_markup,
     }),
   };
   const response = UrlFetchApp.fetch(url, options);
@@ -116,7 +123,19 @@ function addSubject(chatId) {
 }
 
 function mark(chatId) {
-  sendMessage("Mark Function", chatId);
+  let reply_markup = {
+    inline_keyboard: [
+      [
+        { text: "Button 1", callback_data: "button_1" },
+        { text: "Button 2", callback_data: "button_2" },
+      ],
+      [
+        { text: "Button 3", url: "https://example.com" },
+        { text: "Button 4", url: "https://example.com" },
+      ],
+    ],
+  };
+  sendMessage("Mark Function", chatId, reply_markup);
   return;
 }
 
