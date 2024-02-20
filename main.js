@@ -217,6 +217,8 @@ function mark_step1(chatId, ssId, lastest_sem) {
 function mark_step2(chatId, ssId, lastest_sem, message) {
   let reply_markup = {
     keyboard: [[{ text: "Present" }, { text: "Absent" }]],
+    one_time_keyboard: true,
+    resize_keyboard: true,
   };
 
   let sheet = SpreadsheetApp.openById(ssId).getSheetByName(lastest_sem);
