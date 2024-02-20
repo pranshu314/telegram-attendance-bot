@@ -83,7 +83,7 @@ function doPost(e) {
       return;
     } else if (message == "/new_sem" && chatDialogStatus == "initial") {
       propertiesService.setProperty("CHAT_STATUS", "new_sem");
-      newSem(chatId, ssId);
+      sendMessage("Give the name for the Ongoing SEM", chatId);
       return;
     } else if (message == "/add_subject" && chatDialogStatus == "initial") {
       propertiesService.setProperty("CHAT_STATUS", "add_subject");
@@ -102,7 +102,8 @@ function doPost(e) {
       getCanSkip(chatId, ssId, lastest_sem);
       return;
     } else if (chatDialogStatus == "new_sem") {
-      sendMessage("Hello from after new_sem", chatId);
+      newSem(chatId, ssId, message);
+      propertiesService.setProperty("LATEST_SEM", message);
       propertiesService.setProperty("CHAT_STATUS", "initial");
       return;
     } else if (chatDialogStatus == "add_subject") {
@@ -165,26 +166,65 @@ function sendMessage(text, chat_id, reply_markup) {
   );
 }
 
-function newSem(chatId, ssId, lastest_sem) {
-  sendMessage("New Sem Function", chatId);
+function newSem(chatId, ssId, message) {
+  let sheet = SpreadsheetApp.openById(ssId);
+  let template_sheet = sheet.getSheetByName("Template");
+  sheet.insertSheet(message, { template: template_sheet });
+
+  sendMessage("Added a new sheet " + message, chatId);
   return;
 }
 
+// =FLOOR((A$2*100/85)-(COUNTIFS($B$5:$B,A$1,$C$5:$C,-1)+A$2),1)
 function addSubject(chatId, ssId, lastest_sem, message) {
   let sheet = SpreadsheetApp.openById(ssId).getSheetByName(lastest_sem);
   let subjects = sheet.getRange("1:1").getValues();
   let filtered_subjects = [];
+
+  let filtered_count = [];
+  let filtered_percent = [];
+  let filtered_skip = [];
+  let char_value = "";
+
   for (let i = 0; i < subjects[0].length; i++) {
     if (subjects[0][i] == "") {
       break;
     }
     filtered_subjects.push(subjects[0][i]);
+    char_value = String.fromCharCode(97 + i);
+    filtered_count.push(`=COUNTIF($B$5:$B,${char_value}1)`);
+    filtered_percent.push(
+      `=SUMIFS($C5:$C,$B5:$B,${char_value}1,$C$5:$C,1)/${char_value}$2*100`,
+    );
+    filtered_skip.push(
+      `=FLOOR((${char_value}$2*100/85)-(COUNTIFS($B$5:$B,${char_value}$1,$C$5:$C,-1)+${char_value}$2),1)`,
+    );
   }
   filtered_subjects.push(message);
 
   columnLetter = String.fromCharCode(96 + filtered_subjects.length);
   let range = "A1:" + columnLetter + "1";
   sheet.getRange(range).setValues([filtered_subjects]);
+
+  let columnLetter1 = String.fromCharCode(97 + filtered_subjects.length);
+
+  let total_counts_formula = `=COUNTIF($B$5:$B,${columnLetter}1)`;
+  filtered_count.push(total_counts_formula);
+  filtered_count.push('=TEXTJOIN(" ",TRUE,"Total","Attendance")');
+  let range2 = "A2:" + columnLetter1 + "2";
+  sheet.getRange(range2).setFormulas([filtered_count]);
+
+  let percent_formula = `=SUMIFS($C5:$C,$B5:$B,${columnLetter}1,$C$5:$C,1)/${columnLetter}$2*100`;
+  filtered_percent.push(percent_formula);
+  filtered_percent.push('=TEXTJOIN(" ",TRUE,"Percentage","Attendance")');
+  let range3 = "A3:" + columnLetter1 + "3";
+  sheet.getRange(range3).setFormulas([filtered_percent]);
+
+  let skip_formula = `=FLOOR((${columnLetter}$2*100/85)-(COUNTIFS($B$5:$B,${columnLetter}$1,$C$5:$C,-1)+${columnLetter}$2),1)`;
+  filtered_skip.push(skip_formula);
+  filtered_skip.push('=TEXTJOIN(" ",TRUE,"Available","Bunk")');
+  let range4 = "A4:" + columnLetter1 + "4";
+  sheet.getRange(range4).setFormulas([filtered_skip]);
 
   sendMessage("Added the Subject '" + message + "'", chatId);
   return;
