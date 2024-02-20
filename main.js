@@ -94,11 +94,9 @@ function doPost(e) {
       mark_step1(chatId, ssId, lastest_sem);
       return;
     } else if (message == "/percentage" && chatDialogStatus == "initial") {
-      propertiesService.setProperty("CHAT_STATUS", "percentage");
       getPercentage(chatId, ssId, lastest_sem);
       return;
     } else if (message == "/can_skip" && chatDialogStatus == "initial") {
-      propertiesService.setProperty("CHAT_STATUS", "can_skip");
       getCanSkip(chatId, ssId, lastest_sem);
       return;
     } else if (chatDialogStatus == "new_sem") {
@@ -119,14 +117,6 @@ function doPost(e) {
       mark_step3(chatId, ssId, lastest_sem, message, sub_to_mark);
       propertiesService.setProperty("SUBJECT_TO_MARK", "none");
       propertiesService.setProperty("CHAT_STATUS", "initial");
-    } else if (chatDialogStatus == "percentage") {
-      sendMessage("Hello from after percentage", chatId);
-      propertiesService.setProperty("CHAT_STATUS", "initial");
-      return;
-    } else if (chatDialogStatus == "can_skip") {
-      sendMessage("Hello from after can_skip", chatId);
-      propertiesService.setProperty("CHAT_STATUS", "initial");
-      return;
     } else {
       sendMessage(
         "The given command was not found use /help to get the list of all the commands ",
@@ -175,7 +165,6 @@ function newSem(chatId, ssId, message) {
   return;
 }
 
-// =FLOOR((A$2*100/85)-(COUNTIFS($B$5:$B,A$1,$C$5:$C,-1)+A$2),1)
 function addSubject(chatId, ssId, lastest_sem, message) {
   let sheet = SpreadsheetApp.openById(ssId).getSheetByName(lastest_sem);
   let subjects = sheet.getRange("1:1").getValues();
@@ -305,25 +294,31 @@ function mark_step3(chatId, ssId, lastest_sem, message, sub_to_mark) {
 }
 
 function getPercentage(chatId, ssId, lastest_sem) {
-  let reply_markup = {
-    keyboard: [
-      [
-        { text: "Button 7", callback_data: "button_1" },
-        { text: "Button 8", callback_data: "button_2" },
-      ],
-      [
-        { text: "Button 9", url: "https://example.com" },
-        { text: "Button 10", url: "https://example.com" },
-      ],
-    ],
-    one_time_keyboard: true,
-    resize_keyboard: true,
-  };
-  sendMessage("Get Percentage Function", chatId, reply_markup);
+  let sheet = SpreadsheetApp.openById(ssId).getSheetByName(lastest_sem);
+  let subjects = sheet.getRange("1:4").getValues();
+  let msg = "The Percentage Attendances are as Follows:\n";
+  for (let i = 0; i < subjects[0].length; i++) {
+    if (subjects[0][i] == "") {
+      break;
+    }
+    msg += `${subjects[0][i]}: ${subjects[2][i]}%\n`;
+  }
+
+  sendMessage(msg, chatId);
   return;
 }
 
-function getCanSkip(chatId) {
-  sendMessage("Get Can Skip Function", chatId);
+function getCanSkip(chatId, ssId, lastest_sem) {
+  let sheet = SpreadsheetApp.openById(ssId).getSheetByName(lastest_sem);
+  let subjects = sheet.getRange("1:4").getValues();
+  let msg = "The Available Skips are as Follows:\n";
+  for (let i = 0; i < subjects[0].length; i++) {
+    if (subjects[0][i] == "") {
+      break;
+    }
+    msg += `${subjects[0][i]}: ${subjects[3][i]} Classes\n`;
+  }
+
+  sendMessage(msg, chatId);
   return;
 }
