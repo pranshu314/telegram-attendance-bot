@@ -5,6 +5,7 @@
 // WEBHOOK_URL := <This scripts deployed url>
 // USR_NAME := <Your Telegram Username>
 // LATEST_SEM := <Current Semester you want to mark attendance for>
+// SUBJECT_TO_MARK := none
 
 // Function to register webhook progmatically on each deployment
 function registerWebhook() {
@@ -51,6 +52,9 @@ function doPost(e) {
   let chatDialogStatus = propertiesService.getProperty("CHAT_STATUS");
   let TELEGRAM_TOKEN = propertiesService.getProperty("TELEGRAM_TOKEN");
   let WEBHOOK_URL = propertiesService.getProperty("WEBHOOK_URL");
+  let ssId = propertiesService.getProperty("SPREADSHEET_ID");
+  let lastest_sem = propertiesService.getProperty("LATEST_SEM");
+  let sub_to_mark = propertiesService.getProperty("SUBJECT_TO_MARK");
 
   usrName = propertiesService.getProperty("USR_NAME");
 
@@ -77,18 +81,56 @@ function doPost(e) {
     if (message == "/start" || message == "/help") {
       sendMessage("You have the following options :- " + COMMANDS, chatId);
       return;
-    } else if (message == "/new_sem") {
-      newSem(chatId);
-    } else if (message == "/add_subject") {
-      addSubject(chatId);
-    } else if (message == "/mark") {
-      mark(chatId);
-    } else if (message == "/percentage") {
-      getPercentage(chatId);
-    } else if (message == "/can_skip") {
-      getCanSkip(chatId);
+    } else if (message == "/new_sem" && chatDialogStatus == "initial") {
+      propertiesService.setProperty("CHAT_STATUS", "new_sem");
+      newSem(chatId, ssId);
+      return;
+    } else if (message == "/add_subject" && chatDialogStatus == "initial") {
+      propertiesService.setProperty("CHAT_STATUS", "add_subject");
+      sendMessage("What is the name of the subject you want to add", chatId);
+      return;
+    } else if (message == "/mark" && chatDialogStatus == "initial") {
+      propertiesService.setProperty("CHAT_STATUS", "mark_step1");
+      mark_step1(chatId, ssId, lastest_sem);
+      return;
+    } else if (message == "/percentage" && chatDialogStatus == "initial") {
+      propertiesService.setProperty("CHAT_STATUS", "percentage");
+      getPercentage(chatId, ssId, lastest_sem);
+      return;
+    } else if (message == "/can_skip" && chatDialogStatus == "initial") {
+      propertiesService.setProperty("CHAT_STATUS", "can_skip");
+      getCanSkip(chatId, ssId, lastest_sem);
+      return;
+    } else if (chatDialogStatus == "new_sem") {
+      sendMessage("Hello from after new_sem", chatId);
+      propertiesService.setProperty("CHAT_STATUS", "initial");
+      return;
+    } else if (chatDialogStatus == "add_subject") {
+      addSubject(chatId, ssId, lastest_sem, message);
+      propertiesService.setProperty("CHAT_STATUS", "initial");
+      return;
+    } else if (chatDialogStatus == "mark_step1") {
+      mark_step2(chatId, ssId, lastest_sem, message);
+      propertiesService.setProperty("SUBJECT_TO_MARK", message);
+      propertiesService.setProperty("CHAT_STATUS", "mark_step2");
+      return;
+    } else if (chatDialogStatus == "mark_step2") {
+      mark_step3(chatId, ssId, lastest_sem, message, sub_to_mark);
+      propertiesService.setProperty("SUBJECT_TO_MARK", "none");
+      propertiesService.setProperty("CHAT_STATUS", "initial");
+    } else if (chatDialogStatus == "percentage") {
+      sendMessage("Hello from after percentage", chatId);
+      propertiesService.setProperty("CHAT_STATUS", "initial");
+      return;
+    } else if (chatDialogStatus == "can_skip") {
+      sendMessage("Hello from after can_skip", chatId);
+      propertiesService.setProperty("CHAT_STATUS", "initial");
+      return;
     } else {
-      sendMessage("Use only the commands given ", chatId);
+      sendMessage(
+        "The given command was not found use /help to get the list of all the commands ",
+        chatId,
+      );
       return;
     }
   } catch (e) {
@@ -123,35 +165,119 @@ function sendMessage(text, chat_id, reply_markup) {
   );
 }
 
-function newSem(chatId) {
+function newSem(chatId, ssId, lastest_sem) {
   sendMessage("New Sem Function", chatId);
   return;
 }
 
-function addSubject(chatId) {
-  sendMessage("Add Subject Function", chatId);
+function addSubject(chatId, ssId, lastest_sem, message) {
+  let sheet = SpreadsheetApp.openById(ssId).getSheetByName(lastest_sem);
+  let subjects = sheet.getRange("1:1").getValues();
+  let filtered_subjects = [];
+  for (let i = 0; i < subjects[0].length; i++) {
+    if (subjects[0][i] == "") {
+      break;
+    }
+    filtered_subjects.push(subjects[0][i]);
+  }
+  filtered_subjects.push(message);
+
+  columnLetter = String.fromCharCode(96 + filtered_subjects.length);
+  let range = "A1:" + columnLetter + "1";
+  sheet.getRange(range).setValues([filtered_subjects]);
+
+  sendMessage("Added the Subject '" + message + "'", chatId);
   return;
 }
 
-function mark(chatId) {
+function mark_step1(chatId, ssId, lastest_sem) {
+  let sheet = SpreadsheetApp.openById(ssId).getSheetByName(lastest_sem);
+  let subjects = sheet.getRange("1:1").getValues();
+  let key_obj = [];
+  for (let i = 0; i < subjects[0].length; i++) {
+    if (subjects[0][i] == "") {
+      break;
+    }
+    key_obj.push([{ text: subjects[0][i] }]);
+  }
+
   let reply_markup = {
-    inline_keyboard: [
+    keyboard: key_obj,
+    one_time_keyboard: true,
+    resize_keyboard: true,
+  };
+  sendMessage(
+    "Select the subject you want to mark attendance for.",
+    chatId,
+    reply_markup,
+  );
+  return;
+}
+
+function mark_step2(chatId, ssId, lastest_sem, message) {
+  let reply_markup = {
+    keyboard: [[{ text: "Present" }, { text: "Absent" }]],
+  };
+
+  let sheet = SpreadsheetApp.openById(ssId).getSheetByName(lastest_sem);
+  let flag_sub_check = 0;
+  let subjects = sheet.getRange("1:1").getValues();
+  for (let i = 0; i < subjects[0].length; i++) {
+    if (subjects[0][i] == "") {
+      return;
+    }
+    if (subjects[0][i] == message) {
+      flag_sub_check = 1;
+      break;
+    }
+  }
+
+  if (flag_sub_check == 0) {
+    sendMessage("Select a correct subject please.", chatId);
+    return;
+  }
+  sendMessage(
+    "Select whether to mark Present or Absent for the subject " + message,
+    chatId,
+    reply_markup,
+  );
+  return;
+}
+
+function mark_step3(chatId, ssId, lastest_sem, message, sub_to_mark) {
+  let sheet = SpreadsheetApp.openById(ssId).getSheetByName(lastest_sem);
+  let date = new Date();
+  date.setHours(0, 0, 0, 0);
+
+  if (message == "Present") {
+    sheet.appendRow([date, sub_to_mark, 1]);
+    sendMessage("Marked " + sub_to_mark + " " + message, chatId);
+  } else if (message == "Absent") {
+    sheet.appendRow([date, sub_to_mark, -1]);
+    sendMessage("Marked " + sub_to_mark + " " + message, chatId);
+  } else {
+    sendMessage("Please choose an option", chatId);
+  }
+
+  return;
+}
+
+function getPercentage(chatId, ssId, lastest_sem) {
+  let reply_markup = {
+    keyboard: [
       [
-        { text: "Button 1", callback_data: "button_1" },
-        { text: "Button 2", callback_data: "button_2" },
+        { text: "Button 7", callback_data: "button_1" },
+        { text: "Button 8", callback_data: "button_2" },
       ],
       [
-        { text: "Button 3", url: "https://example.com" },
-        { text: "Button 4", url: "https://example.com" },
+        { text: "Button 9", url: "https://example.com" },
+        { text: "Button 10", url: "https://example.com" },
       ],
     ],
+    one_time_keyboard: true,
+    resize_keyboard: true,
   };
-  sendMessage("Mark Function", chatId, reply_markup);
-  return;
-}
-
-function getPercentage(chatId) {
-  sendMessage("Get Percentage Function", chatId);
+  sendMessage("Get Percentage Function", chatId, reply_markup);
   return;
 }
 
