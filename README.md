@@ -13,11 +13,11 @@ This repo contains the code for a telegram bot to track attendance, which is hos
 - Create a new Google AppScript.
 - Add the following Script Properties
   - CHAT_STATUS :=  initial
-  - SPREADSHEET_ID := <Google Sheet ID>
-  - TELEGRAM_TOKEN := <Telegram Bot Token>
-  - WEBHOOK_URL := <This scripts deployed url>
-  - USR_NAME := <Your Telegram Username>
-  - LATEST_SEM := <Current Semester you want to mark attendance for>
+  - SPREADSHEET_ID := Google Sheet ID
+  - TELEGRAM_TOKEN := Telegram Bot Token
+  - WEBHOOK_URL := This scripts deployed url
+  - USR_NAME := Your Telegram Username
+  - LATEST_SEM := Current Semester you want to mark attendance for
   - SUBJECT_TO_MARK := none
 - Copy and paste the code in main.js to code.gs file in app script and deploy the script.
 - Now you can use the telegram bot you have made to mark and track the attendance for your college.
