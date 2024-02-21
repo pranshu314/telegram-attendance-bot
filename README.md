@@ -1,6 +1,12 @@
 # Telegram Bot to Track Attendance
 This repo contains the code for a telegram bot to track attendance, which is hosted using google appscripts.
 
+## Demonstration
+### Video
+
+### Google Sheet just after the video
+<img width="479" alt="image" src="https://github.com/pranshu314/telegram-attendance-bot/assets/110905434/2c2c0a80-647e-409f-8133-9c16fcf02598">
+
 ## Working
 - The /new_sem command is used to add a new semester/ new sheet marking the attendance.
   - It asks for the name of the new semester and makes a sheet with that name.
