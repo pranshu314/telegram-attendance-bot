@@ -3,7 +3,7 @@ This repo contains the code for a telegram bot to track attendance, which is hos
 
 ## Demonstration
 ### Video
-
+[![Watch Video](https://img.youtube.com/vi/Q-6tEpb-5xg/maxresdefault.jpg)](https://youtu.be/Q-6tEpb-5xg)
 ### Google Sheet just after the video
 <img width="479" alt="image" src="https://github.com/pranshu314/telegram-attendance-bot/assets/110905434/2c2c0a80-647e-409f-8133-9c16fcf02598">
 
